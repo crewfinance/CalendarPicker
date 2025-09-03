@@ -202,7 +202,7 @@ export default function Day(props) {
       }
     }
 
-    if (dateOutOfRange && !isThisDayMultiSelected) { // start or end date selected, and this date outside of range.
+    if (dateOutOfRange) { // start or end date selected, and this date outside of range.
       return (
         <View style={[styles.dayWrapper, custom.containerStyle]}>
           <View style={[custom.style, computedSelectedDayStyle, selectedDayStyle]}>

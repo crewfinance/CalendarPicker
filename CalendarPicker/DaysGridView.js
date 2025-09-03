@@ -154,7 +154,7 @@ export default class DaysGridView extends Component {
     });
   }
 
-  renderDayStraggler({ key, day }) {
+  renderDayStraggler({ key, day, month, year }) {
     return ({
       day,
       // month doesn't matter for stragglers as long as isn't set to current month
@@ -162,6 +162,8 @@ export default class DaysGridView extends Component {
         <Day
           key={key}
           day={day}
+          month={month}
+          year={year}
           styles={this.props.styles}
           disabledDates={() => true}
           disabledDatesTextStyle={this.props.disabledDatesTextStyle}
@@ -198,11 +200,19 @@ export default class DaysGridView extends Component {
             }
           } else {
             const key = '' + i + j;
+            let lastMonth = this.props.month - 1;
+            let year = this.props.year;
+            if (lastMonth < 0) {
+              lastMonth = 11;
+              year--;
+            }
             daysGrid[i].push(this.props.showDayStragglers ?
               // Show previous month's days
               this.renderDayStraggler({
                 key,
                 day: numDaysInPrevMonth - startIndex + j + 1,
+                month: lastMonth,
+                year,
               })
               :
               //... otherwise blank
@@ -216,10 +226,18 @@ export default class DaysGridView extends Component {
           }
           else {
             if (this.props.showDayStragglers && i <= lastFilledRow) {
+              let nextMonth = this.props.month + 1;
+              let year = this.props.year;
+              if (nextMonth > 11) {
+                nextMonth = 0;
+                year--;
+              }
               // Show next month's days
               daysGrid[i].push(this.renderDayStraggler({
                 key: '' + i + j,
                 day: dayNextMonth++,
+                month: nextMonth,
+                year,
               }));
             }
           }
