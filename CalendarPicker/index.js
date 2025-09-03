@@ -29,6 +29,7 @@ export default class CalendarPicker extends Component {
       currentView: props.initialView || 'days',
       selectedStartDate: props.selectedStartDate && new Date(props.selectedStartDate),
       selectedEndDate: props.selectedEndDate && new Date(props.selectedEndDate),
+      selectedDates: props.selectedDates ? props.selectedDates.map(date => new Date(date)) : [],
       minDate: props.minDate && new Date(props.minDate),
       maxDate: props.maxDate && new Date(props.maxDate),
       styles: {},
@@ -67,6 +68,7 @@ export default class CalendarPicker extends Component {
     selectedRangeEndStyle: null,
     selectedRangeStyle: null,
     fontScaling: true,
+    multiDateSelection: false,
   };
 
   componentDidUpdate(prevProps) {
@@ -89,13 +91,15 @@ export default class CalendarPicker extends Component {
     }
 
     let selectedDateRanges = {};
-    const { selectedStartDate, selectedEndDate } = this.props;
+    const { selectedStartDate, selectedEndDate, selectedDates } = this.props;
     if (selectedStartDate !== prevProps.selectedStartDate ||
-      selectedEndDate !== prevProps.selectedEndDate
+      selectedEndDate !== prevProps.selectedEndDate ||
+      selectedDates !== prevProps.selectedDates
     ) {
       selectedDateRanges = {
         selectedStartDate: selectedStartDate && new Date(selectedStartDate),
-        selectedEndDate: selectedEndDate && new Date(selectedEndDate)
+        selectedEndDate: selectedEndDate && new Date(selectedEndDate),
+        selectedDates: selectedDates ? selectedDates.map(date => new Date(date)) : []
       };
       doStateUpdate = true;
     }
@@ -241,6 +245,7 @@ export default class CalendarPicker extends Component {
     const {
       selectedStartDate: prevSelectedStartDate,
       selectedEndDate: prevSelectedEndDate,
+      selectedDates: prevSelectedDates,
     } = this.state;
 
     const {
@@ -248,6 +253,7 @@ export default class CalendarPicker extends Component {
       allowBackwardRangeSelect,
       enableDateChange,
       onDateChange,
+      multiDateSelection,
     } = this.props;
 
     if (!enableDateChange) {
@@ -256,6 +262,32 @@ export default class CalendarPicker extends Component {
 
     const date = new Date(year, month, day, 12);
 
+    // Handle multi-date selection mode
+    if (multiDateSelection) {
+      const existingDateIndex = prevSelectedDates.findIndex(selectedDate => 
+        isSameDay(selectedDate, date)
+      );
+      
+      let newSelectedDates;
+      if (existingDateIndex >= 0) {
+        // Date is already selected, remove it
+        newSelectedDates = prevSelectedDates.filter((_, index) => index !== existingDateIndex);
+      } else {
+        // Date is not selected, add it
+        newSelectedDates = [...prevSelectedDates, date];
+      }
+      
+      this.setState({
+        selectedDates: newSelectedDates,
+        renderMonthParams: this.createMonthProps({ ...this.state, selectedDates: newSelectedDates }),
+      }, () => {
+        // Sync selected dates with parent
+        onDateChange(this.state.selectedDates, Utils.MULTI_DATE);
+      });
+      return;
+    }
+
+    // Original range selection logic
     if (allowRangeSelection && prevSelectedStartDate && !prevSelectedEndDate) {
       if (isAfter(date, prevSelectedStartDate)) {
         const selectedStartDate = prevSelectedStartDate;
@@ -376,10 +408,12 @@ export default class CalendarPicker extends Component {
     this.setState((state) => ({
       selectedStartDate: null,
       selectedEndDate: null,
+      selectedDates: [],
       renderMonthParams: {
         ...state.renderMonthParams,
         selectedStartDate: null,
         selectedEndDate: null,
+        selectedDates: [],
       }
     }));
   }
@@ -397,10 +431,12 @@ export default class CalendarPicker extends Component {
       maxRangeDuration: state.maxRangeDuration,
       selectedStartDate: state.selectedStartDate,
       selectedEndDate: state.selectedEndDate,
+      selectedDates: state.selectedDates,
       enableDateChange: this.props.enableDateChange,
       firstDay: this.props.startFromMonday ? 1 : this.props.firstDay,
       allowRangeSelection: this.props.allowRangeSelection,
       allowBackwardRangeSelect: this.props.allowBackwardRangeSelect,
+      multiDateSelection: this.props.multiDateSelection,
       showDayStragglers: this.props.showDayStragglers,
       disabledDatesTextStyle: this.props.disabledDatesTextStyle,
       textStyle: this.props.textStyle,

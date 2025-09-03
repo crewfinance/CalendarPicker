@@ -13,6 +13,7 @@ import { isSameMonth } from 'date-fns/isSameMonth';
 export const Utils = {
   START_DATE: 'START_DATE',
   END_DATE: 'END_DATE',
+  MULTI_DATE: 'MULTI_DATE',
   WEEKDAYS: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   MONTHS: [
     'January', 'February', 'March', 'April', 'May', 'June', 'July',

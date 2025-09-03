@@ -70,9 +70,12 @@ export default class DaysGridView extends Component {
     // Shallow compare prop changes, excluding selected dates.
     let excludedProps = []
 
-    // Avoid unecessary re-render when selecting date range
+    // Avoid unecessary re-render when selecting date range or multi-dates
     if (this.props.selectedEndDate) {
       excludedProps = ['selectedStartDate', 'selectedEndDate']
+    }
+    if (this.props.multiDateSelection && this.props.selectedDates) {
+      excludedProps = ['selectedDates']
     }
 
     const propDiffs = Utils.shallowDiff(this.props, prevProps, excludedProps);
@@ -87,20 +90,33 @@ export default class DaysGridView extends Component {
     }
     else {
       // Update daysGrid entries when selected date(s) affect this month.
-      const { selectedStartDate, selectedEndDate } = this.props;
-      const { selectedStartDate: prevSelStart, selectedEndDate: prevSelEnd } = prevProps;
+      const { selectedStartDate, selectedEndDate, selectedDates = [] } = this.props;
+      const { selectedStartDate: prevSelStart, selectedEndDate: prevSelEnd, selectedDates: prevSelectedDates = [] } = prevProps;
       const { firstDayOfMonth } = this.state.monthSettings;
+      
       const isSelectedDiff =
         !Utils.compareDates(selectedStartDate, prevSelStart, 'day') ||
-        !Utils.compareDates(selectedEndDate, prevSelEnd, 'day');
+        !Utils.compareDates(selectedEndDate, prevSelEnd, 'day') ||
+        selectedDates.length !== prevSelectedDates.length ||
+        selectedDates.some((date, index) => !Utils.compareDates(date, prevSelectedDates[index], 'day'));
+      
       // Check that selected date(s) match this month.
+      const hasSelectedDatesInMonth = selectedDates.some(date => 
+        Utils.compareDates(date, firstDayOfMonth, 'month')
+      );
+      const hadSelectedDatesInMonth = prevSelectedDates.some(date => 
+        Utils.compareDates(date, firstDayOfMonth, 'month')
+      );
+      
       if (isSelectedDiff && (
         Utils.compareDates(selectedStartDate, firstDayOfMonth, 'month') ||
         Utils.compareDates(selectedEndDate, firstDayOfMonth, 'month') ||
         Utils.compareDates(prevSelStart, firstDayOfMonth, 'month') ||
-        Utils.compareDates(prevSelEnd, firstDayOfMonth, 'month'))) {
-        // Range selection potentially affects all dates in the month. Recreate.
-        if (this.props.allowRangeSelection) {
+        Utils.compareDates(prevSelEnd, firstDayOfMonth, 'month') ||
+        hasSelectedDatesInMonth ||
+        hadSelectedDatesInMonth)) {
+        // Range selection or multi-date selection potentially affects all dates in the month. Recreate.
+        if (this.props.allowRangeSelection || this.props.multiDateSelection) {
           this.setState({
             daysGrid: this.generateDaysGrid(this.state.monthSettings),
           });
@@ -274,4 +290,6 @@ DaysGridView.propTypes = {
   disabledDatesTextStyle: stylePropType,
   minRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
   maxRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  selectedDates: PropTypes.array,
+  multiDateSelection: PropTypes.bool,
 };

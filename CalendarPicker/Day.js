@@ -23,8 +23,10 @@ export default function Day(props) {
     onPressDay,
     selectedStartDate,
     selectedEndDate,
+    selectedDates = [],
     allowRangeSelection,
     allowBackwardRangeSelect,
+    multiDateSelection,
     selectedDayStyle: propSelectedDayStyle,
     selectedDisabledDatesTextStyle,
     selectedRangeStartStyle,
@@ -120,8 +122,11 @@ export default function Day(props) {
       end: selectedEndDate
     })
 
+  // Check if this date is selected in multi-date selection mode
+  let isThisDateSelectedInMultiMode = multiDateSelection && selectedDates.some(date => isSameDay(thisDay, date));
+
   // If date is in range let's apply styles
-  if (!dateOutOfRange || isThisDaySameAsSelectedStart || isThisDaySameAsSelectedEnd || isThisDateInSelectedRange) {
+  if (!dateOutOfRange || isThisDaySameAsSelectedStart || isThisDaySameAsSelectedEnd || isThisDateInSelectedRange || isThisDateSelectedInMultiMode) {
     // set today's style
     let isToday = isSameDay(thisDay, today);
     if (isToday) {
@@ -138,8 +143,15 @@ export default function Day(props) {
       computedSelectedDayStyle = [styles.selectedToday, custom.style];
     }
 
-    // set selected day style
-    if (!allowRangeSelection &&
+    // set selected day style for multi-date selection
+    if (multiDateSelection && isThisDateSelectedInMultiMode) {
+      computedSelectedDayStyle = styles.selectedDay;
+      selectedDayTextStyle = [styles.selectedDayLabel, isToday && todayTextStyle, propSelectedDayTextStyle];
+      // selectedDayStyle prop overrides selectedDayColor (created via makeStyles)
+      selectedDayStyle = propSelectedDayStyle || styles.selectedDayBackground;
+    }
+    // set selected day style for single date selection
+    else if (!allowRangeSelection && !multiDateSelection &&
       selectedStartDate &&
       isThisDaySameAsSelectedStart) {
       computedSelectedDayStyle = styles.selectedDay;
@@ -260,4 +272,6 @@ Day.propTypes = {
   disabledDates: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
   minRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
   maxRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  selectedDates: PropTypes.array,
+  multiDateSelection: PropTypes.bool,
 };
