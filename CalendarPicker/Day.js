@@ -23,8 +23,10 @@ export default function Day(props) {
     onPressDay,
     selectedStartDate,
     selectedEndDate,
+    selectedDates = [],
     allowRangeSelection,
     allowBackwardRangeSelect,
+    allowMultiSelection,
     selectedDayStyle: propSelectedDayStyle,
     selectedDisabledDatesTextStyle,
     selectedRangeStartStyle,
@@ -120,8 +122,11 @@ export default function Day(props) {
       end: selectedEndDate
     })
 
+  // Check if this day is in the multi-selected dates
+  let isThisDayMultiSelected = allowMultiSelection && selectedDates.some(date => isSameDay(thisDay, date));
+
   // If date is in range let's apply styles
-  if (!dateOutOfRange || isThisDaySameAsSelectedStart || isThisDaySameAsSelectedEnd || isThisDateInSelectedRange) {
+  if (!dateOutOfRange || isThisDaySameAsSelectedStart || isThisDaySameAsSelectedEnd || isThisDateInSelectedRange || isThisDayMultiSelected) {
     // set today's style
     let isToday = isSameDay(thisDay, today);
     if (isToday) {
@@ -138,8 +143,16 @@ export default function Day(props) {
       computedSelectedDayStyle = [styles.selectedToday, custom.style];
     }
 
-    // set selected day style
-    if (!allowRangeSelection &&
+    // set selected day style for multi-selection
+    if (allowMultiSelection && isThisDayMultiSelected) {
+      computedSelectedDayStyle = styles.selectedDay;
+      selectedDayTextStyle = [styles.selectedDayLabel, isToday && todayTextStyle, propSelectedDayTextStyle];
+      // selectedDayStyle prop overrides selectedDayColor (created via makeStyles)
+      selectedDayStyle = propSelectedDayStyle || styles.selectedDayBackground;
+    }
+    // set selected day style for single selection
+    else if (!allowRangeSelection &&
+      !allowMultiSelection &&
       selectedStartDate &&
       isThisDaySameAsSelectedStart) {
       computedSelectedDayStyle = styles.selectedDay;
@@ -189,7 +202,7 @@ export default function Day(props) {
       }
     }
 
-    if (dateOutOfRange) { // start or end date selected, and this date outside of range.
+    if (dateOutOfRange && !isThisDayMultiSelected) { // start or end date selected, and this date outside of range.
       return (
         <View style={[styles.dayWrapper, custom.containerStyle]}>
           <View style={[custom.style, computedSelectedDayStyle, selectedDayStyle]}>
@@ -260,4 +273,6 @@ Day.propTypes = {
   disabledDates: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
   minRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
   maxRangeDuration: PropTypes.oneOfType([PropTypes.array, PropTypes.number]),
+  selectedDates: PropTypes.array,
+  allowMultiSelection: PropTypes.bool,
 };
