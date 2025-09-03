@@ -29,7 +29,7 @@ export default class CalendarPicker extends Component {
       currentView: props.initialView || 'days',
       selectedStartDate: props.selectedStartDate && new Date(props.selectedStartDate),
       selectedEndDate: props.selectedEndDate && new Date(props.selectedEndDate),
-      selectedDates: props.selectedDates ? props.selectedDates.map(date => new Date(date)) : [],
+      selectedDates: [],
       minDate: props.minDate && new Date(props.minDate),
       maxDate: props.maxDate && new Date(props.maxDate),
       styles: {},
@@ -92,15 +92,41 @@ export default class CalendarPicker extends Component {
 
     let selectedDateRanges = {};
     const { selectedStartDate, selectedEndDate, selectedDates } = this.props;
+    
+    // Only update if selectedDates prop is provided and has actually changed
+    const selectedDatesChanged = this.props.selectedDates !== undefined && (() => {
+      // If references are the same, no change
+      if (selectedDates === prevProps.selectedDates) return false;
+      
+      // If one is null/undefined and the other isn't, they're different
+      if (!selectedDates !== !prevProps.selectedDates) return true;
+      
+      // If both are null/undefined, they're the same
+      if (!selectedDates && !prevProps.selectedDates) return false;
+      
+      // If lengths are different, they're different
+      if (selectedDates.length !== prevProps.selectedDates.length) return true;
+      
+      // Compare each date
+      return selectedDates.some((date, index) => {
+        const currentDate = new Date(date);
+        const prevDate = new Date(prevProps.selectedDates[index]);
+        return currentDate.getTime() !== prevDate.getTime();
+      });
+    })();
+    
     if (selectedStartDate !== prevProps.selectedStartDate ||
       selectedEndDate !== prevProps.selectedEndDate ||
-      selectedDates !== prevProps.selectedDates
+      selectedDatesChanged
     ) {
       selectedDateRanges = {
         selectedStartDate: selectedStartDate && new Date(selectedStartDate),
         selectedEndDate: selectedEndDate && new Date(selectedEndDate),
-        selectedDates: selectedDates ? selectedDates.map(date => new Date(date)) : []
       };
+      // Only update selectedDates if it's a controlled prop
+      if (this.props.selectedDates !== undefined) {
+        selectedDateRanges.selectedDates = selectedDates ? selectedDates.map(date => new Date(date)) : [];
+      }
       doStateUpdate = true;
     }
 
@@ -264,26 +290,32 @@ export default class CalendarPicker extends Component {
 
     // Handle multi-date selection mode
     if (multiDateSelection) {
-      const existingDateIndex = prevSelectedDates.findIndex(selectedDate => 
+      // For controlled components, use props; for uncontrolled, use state
+      const currentSelectedDates = this.props.selectedDates || this.state.selectedDates;
+      const existingDateIndex = currentSelectedDates.findIndex(selectedDate => 
         isSameDay(selectedDate, date)
       );
       
       let newSelectedDates;
       if (existingDateIndex >= 0) {
         // Date is already selected, remove it
-        newSelectedDates = prevSelectedDates.filter((_, index) => index !== existingDateIndex);
+        newSelectedDates = currentSelectedDates.filter((_, index) => index !== existingDateIndex);
       } else {
         // Date is not selected, add it
-        newSelectedDates = [...prevSelectedDates, date];
+        newSelectedDates = [...currentSelectedDates, date];
       }
       
-      this.setState({
-        selectedDates: newSelectedDates,
-        renderMonthParams: this.createMonthProps({ ...this.state, selectedDates: newSelectedDates }),
-      }, () => {
-        // Sync selected dates with parent
-        onDateChange(this.state.selectedDates, Utils.MULTI_DATE);
-      });
+      // If component is controlled (has selectedDates prop), only call callback
+      if (this.props.selectedDates !== undefined) {
+        onDateChange(newSelectedDates, Utils.MULTI_DATE);
+      } else {
+        // If uncontrolled, update internal state and call callback
+        this.setState({
+          selectedDates: newSelectedDates,
+          renderMonthParams: this.createMonthProps({ ...this.state, selectedDates: newSelectedDates }),
+        });
+        onDateChange(newSelectedDates, Utils.MULTI_DATE);
+      }
       return;
     }
 
@@ -405,6 +437,17 @@ export default class CalendarPicker extends Component {
   }
 
   resetSelections = () => {
+    // For controlled components, call parent callbacks to reset
+    if (this.props.multiDateSelection && this.props.selectedDates !== undefined) {
+      this.props.onDateChange([], Utils.MULTI_DATE);
+    } else if (this.props.selectedStartDate !== undefined || this.props.selectedEndDate !== undefined) {
+      this.props.onDateChange(null, Utils.START_DATE);
+      if (this.props.allowRangeSelection) {
+        this.props.onDateChange(null, Utils.END_DATE);
+      }
+    }
+    
+    // Always update internal state for uncontrolled usage
     this.setState((state) => ({
       selectedStartDate: null,
       selectedEndDate: null,
@@ -431,7 +474,7 @@ export default class CalendarPicker extends Component {
       maxRangeDuration: state.maxRangeDuration,
       selectedStartDate: state.selectedStartDate,
       selectedEndDate: state.selectedEndDate,
-      selectedDates: state.selectedDates,
+      selectedDates: this.props.selectedDates || state.selectedDates,
       enableDateChange: this.props.enableDateChange,
       firstDay: this.props.startFromMonday ? 1 : this.props.firstDay,
       allowRangeSelection: this.props.allowRangeSelection,
