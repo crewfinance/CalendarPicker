@@ -124,7 +124,7 @@ export default function Day(props) {
 
   // Check if this day is in the multi-selected dates
   let isThisDayMultiSelected = allowMultiSelection && selectedDates.some(date => isSameDay(thisDay, date));
-
+  
   // If date is in range let's apply styles
   if (!dateOutOfRange || isThisDaySameAsSelectedStart || isThisDaySameAsSelectedEnd || isThisDateInSelectedRange || isThisDayMultiSelected) {
     // set today's style

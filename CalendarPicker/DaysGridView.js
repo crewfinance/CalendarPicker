@@ -166,8 +166,12 @@ export default class DaysGridView extends Component {
           year={year}
           styles={this.props.styles}
           disabledDates={() => true}
+          selectedDates={this.props.selectedDates}
+          allowMultiSelection={this.props.allowMultiSelection}
           disabledDatesTextStyle={this.props.disabledDatesTextStyle}
           textStyle={this.props.textStyle}
+          selectedDayStyle={this.props.selectedDayStyle}
+          selectedDayTextStyle={this.props.selectedDayTextStyle}
         />
       )
     });
